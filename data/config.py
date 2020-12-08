@@ -624,7 +624,7 @@ coco_base_config = Config({
     'delayed_settings': [],
 
     # Use command-line arguments to set this.
-    'no_jit': False,
+    'no_jit': True,
 
     'backbone': None,
     'name': 'base_config',

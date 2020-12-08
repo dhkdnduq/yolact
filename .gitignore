@@ -158,3 +158,8 @@ vid/
 vidres/
 
 _.py
+
+onnxruntime
+yolact.onnx
+yolact_resnet50_54_800000.pth
+my_engine.trt
