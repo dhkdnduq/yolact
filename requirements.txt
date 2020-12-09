@@ -4,3 +4,4 @@ pillow
 pycocotools
 matplotlib
 numpy
+imutils
