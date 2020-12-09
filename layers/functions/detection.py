@@ -32,7 +32,7 @@ class Detect(object):
         self.conf_thresh = conf_thresh
         
         self.cross_class_nms = False
-        self.use_fast_nms = False
+        self.use_fast_nms = True
 
     def __call__(self, predictions):
         """
@@ -101,8 +101,10 @@ class Detect(object):
         
         if self.use_fast_nms:
             boxes, masks, classes, scores = self.fast_nms(boxes, masks, scores, self.nms_thresh, self.top_k)
-        else:
-            boxes, masks, classes, scores = self.traditional_nms(boxes, masks, scores, self.nms_thresh, self.conf_thresh)
+
+        # FLAWED, DOESN"T WORK        
+        # else:
+        #     boxes, masks, classes, scores = self.traditional_nms(boxes, masks, scores, self.nms_thresh, self.conf_thresh)
 
         return {'box': boxes, 'mask': masks, 'class': classes, 'score': scores}
     

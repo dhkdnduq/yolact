@@ -150,3 +150,7 @@ img/
 scripts/aws-ohio/
 scripts/aws3/
 data/config_dev.py
+onnxruntime
+data/coco/
+yolact.onnx
+yolact_resnet50*

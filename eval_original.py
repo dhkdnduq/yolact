@@ -36,12 +36,13 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
-def get_args():
-    parser = argparse.ArgumentParser(description='YOLACT COCO Evaluation')
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description='YOLACT COCO Evaluation')
     parser.add_argument('--trained_model',
                         default='weights/ssd300_mAP_77.43_v2.pth', type=str,
                         help='Trained state_dict file path to open. If "interrupt", this will open the interrupt file.')
-    parser.add_argument('--top_k', default=81, type=int,
+    parser.add_argument('--top_k', default=5, type=int,
                         help='Further restrict the number of predictions to parse')
     parser.add_argument('--cuda', default=True, type=str2bool,
                         help='Use cuda to evaulate model')
@@ -99,7 +100,7 @@ def get_args():
                         help='A path to a video to evaluate on.')
     parser.add_argument('--video_multiframe', default=1, type=int,
                         help='The number of frames to evaluate in parallel to make videos play at higher fps.')
-    parser.add_argument('--score_threshold', default=0.15, type=float,
+    parser.add_argument('--score_threshold', default=0, type=float,
                         help='Detections with a score under this threshold will not be considered. This currently only works in display mode.')
     parser.add_argument('--dataset', default=None, type=str,
                         help='If specified, override the dataset specified in the config with this one (example: coco2017_dataset).')
@@ -110,19 +111,13 @@ def get_args():
                         benchmark=False, no_sort=False, no_hash=False, mask_proto_debug=False, crop=True, detect=False)
 
     global args
-    args = parser.parse_args('--trained_model=weights/yolact_base_54_800000.pth --score_threshold=0.3 --top_k=100 --image=my_image.png'.split())
-    
+    args = parser.parse_args(argv)
+
     if args.output_web_json:
         args.output_coco_json = True
-
+    
     if args.seed is not None:
         random.seed(args.seed)
-
-    if args.config is not None:
-        set_cfg(args.config)
-
-    if args.detect:
-        cfg.eval_mask_branch = True
 
 iou_thresholds = [x / 100 for x in range(50, 100, 5)]
 coco_cats = [] # Call prep_coco_cats to fill this
@@ -540,6 +535,10 @@ def evalimage(net:Yolact, path:str, save_path:str=None):
     batch = FastBaseTransform()(frame.unsqueeze(0))
     preds = net(batch)
 
+    # keep_initializers_as_inputs=True,
+    torch.onnx.export(net, batch, "yolact.onnx", export_params=True, opset_version=11)
+    exit()
+
     img_numpy = prep_display(preds, frame, None, None, None, None, undo_transform=False)
     
     if save_path is None:
@@ -875,3 +874,66 @@ def print_maps(all_maps):
         print(make_row([iou_type] + ['%.2f' % x for x in all_maps[iou_type].values()]))
     print(make_sep(len(all_maps['box']) + 1))
     print()
+
+
+
+if __name__ == '__main__':
+    parse_args()
+
+    if args.config is not None:
+        set_cfg(args.config)
+
+    if args.trained_model == 'interrupt':
+        args.trained_model = SavePath.get_interrupt('weights/')
+    elif args.trained_model == 'latest':
+        args.trained_model = SavePath.get_latest('weights/', cfg.name)
+
+    if args.config is None:
+        model_path = SavePath.from_str(args.trained_model)
+        # TODO: Bad practice? Probably want to do a name lookup instead.
+        args.config = model_path.model_name + '_config'
+        print('Config not specified. Parsed %s from the file name.\n' % args.config)
+        set_cfg(args.config)
+
+    if args.detect:
+        cfg.eval_mask_branch = False
+
+    if args.dataset is not None:
+        set_dataset(args.dataset)
+
+    with torch.no_grad():
+        if not os.path.exists('results'):
+            os.makedirs('results')
+
+        if args.cuda:
+            cudnn.benchmark = True
+            cudnn.fastest = True
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        else:
+            torch.set_default_tensor_type('torch.FloatTensor')
+
+        if args.resume and not args.display:
+            with open(args.ap_data_file, 'rb') as f:
+                ap_data = pickle.load(f)
+            calc_map(ap_data)
+            exit()
+
+        if args.image is None and args.video is None and args.images is None:
+            dataset = COCODetection(cfg.dataset.valid_images, cfg.dataset.valid_info,
+                                    transform=BaseTransform(), has_gt=cfg.dataset.has_gt)
+            prep_coco_cats(dataset.coco.cats)
+        else:
+            dataset = None        
+
+        print('Loading model...', end='')
+        net = Yolact()
+        net.load_weights(args.trained_model)
+        net.eval()
+        print(' Done.')
+
+        if args.cuda:
+            net = net.cuda()
+
+        evaluate(net, dataset)
+
+

@@ -617,7 +617,8 @@ class Yolact(nn.Module):
             else:
                 pred_outs['conf'] = F.softmax(pred_outs['conf'], -1)
 
-            return self.detect(pred_outs)
+            return pred_outs
+            # return self.detect(pred_outs)
 
 
 
