@@ -10,9 +10,14 @@ import matplotlib.pyplot as plt
 import time 
 eval.get_args()
 import glob
+from pathlib import Path
+Path("results").mkdir(exist_ok=True)
 
 print("Loading trt execution, this may take a while... ")
 sess = rt.InferenceSession("yolact.onnx")
+print("Onnx execution prodivers:")
+print(sess.get_providers())
+print("WARNING! If above list doesn't contain TensorrtExecutionProvider model isn't executed by TensorRT")
 input_name = sess.get_inputs()[0].name
 loc_name = sess.get_outputs()[0].name
 conf_name = sess.get_outputs()[1].name
