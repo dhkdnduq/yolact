@@ -32,3 +32,11 @@
     - ``export ORT_TENSORRT_MAX_WORKSPACE_SIZE=500000000`` ~500MB
   - read more about tunning: https://github.com/microsoft/onnxruntime/blob/master/docs/execution_providers/TensorRT-ExecutionProvider.md
 - Check results directory
+
+##### Nvidia Jetson TX1/TX2/Nano/Xavier
+  - Tested on JetPack SDK 4.4 with CUDA 10.2 and Pytorch 1.7.0
+  - On Nano, follow this [section](https://github.com/microsoft/onnxruntime/blob/master/BUILD.md#nvidia-jetson-tx1tx2nanoxavier) of the onnxruntime instruction to build, this would take a while
+  - Clone this repo to Nano
+  - Download the pre exported .onnx [here](https://drive.google.com/file/d/1fAFd0tKSFTy2Id6zhoEBfKxuNgo73XEN/view?usp=sharing) (exporting this model on Nano should take a long time)
+  - Run the `lab.py` script
+  
